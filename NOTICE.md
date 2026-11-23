@@ -1,6 +1,6 @@
 # 版权与使用说明
 
-**南京邮电大学 Focuslab 实验室制作。**
+**南京邮电大学 FocusLab 实验室制作。**
 
 **Copyright (c) 2026 Kilimetarlop。** 本软件的著作权归著作权人所有。
 
