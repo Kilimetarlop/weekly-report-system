@@ -1,5 +1,3 @@
-<img src="docs/images/focuslab-logo.png" alt="Focuslab" width="247" height="64">
-
 # 课题组周报管理系统
 
 **南京邮电大学 Focuslab 实验室制作**
