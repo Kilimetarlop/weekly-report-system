@@ -56,7 +56,7 @@
   {% if edit_mode %}<div class="mode-banner" role="status"><span><b>✎ 编辑模式</b>：可以修改任务和进度、组员课题、退回、免交、成员和分组。改完点“完成编辑”回到查看模式。</span><form method="post" action="{% url 'set_mode' %}">{% csrf_token %}<input type="hidden" name="mode" value="view"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="small">✓ 完成编辑</button></form></div>{% endif %}
   {% for message in messages %}<p role="alert" class="notice{% if message.tags == 'success' %} success{% endif %}">{{ message }}</p>{% endfor %}
   {% block content %}{% endblock %}
-  {% block footer %}<footer class="foot">时间均为北京时间 · 暂存草稿不等于正式提交</footer>{% endblock %}
+  {% block footer %}<footer class="foot">时间均为北京时间 · 暂存草稿不等于正式提交<br>南京邮电大学 Focuslab 实验室制作</footer>{% endblock %}
 </main>
 </div>
 </body>

@@ -1,5 +1,7 @@
 # 版权与使用说明
 
+**南京邮电大学 Focuslab 实验室制作。**
+
 **Copyright (c) 2026 Kilimetarlop。** 本软件的著作权归著作权人所有。
 
 本软件按 [PolyForm Strict License 1.0.0](LICENSE) 提供，**不是开源软件**。下面是便于阅读的中文摘要，**不构成许可证的一部分；如有出入，以 LICENSE 英文原文为准**。
