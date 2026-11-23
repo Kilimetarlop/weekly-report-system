@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block content %}<h1>{{ period }} 正式版本</h1><ul>{% for s in versions %}<li><a href="{% url 'version' s.pk %}">版本 {{ s.version }} · {{ s.submitted_at }}</a></li>{% empty %}<li>此周期尚未正式提交</li>{% endfor %}</ul>{% endblock %}

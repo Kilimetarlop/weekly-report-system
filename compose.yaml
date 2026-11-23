@@ -1,0 +1,48 @@
+services:
+  db:
+    image: postgres:17.11-bookworm
+    # 按 1 GB 内存服务器调小：共享缓冲 64 MB、最多 30 个连接、不做并行查询
+    command: [postgres, -c, shared_buffers=64MB, -c, work_mem=4MB, -c, maintenance_work_mem=32MB, -c, effective_cache_size=256MB, -c, max_connections=30, -c, max_parallel_workers_per_gather=0]
+    environment:
+      POSTGRES_DB: ${DB_NAME:-weekly_reports}
+      POSTGRES_USER: weekly_maintenance
+      POSTGRES_PASSWORD: ${DB_ADMIN_PASSWORD:?Set DB_ADMIN_PASSWORD in .env}
+      APP_DB_USER: ${DB_USER:-weekly_app}
+      APP_DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  web:
+    build: .
+    env_file: .env
+    environment:
+      DB_HOST: db
+    volumes:
+      - private_data:/app/private
+      - static_data:/app/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+  worker:
+    build: .
+    command: [python, manage.py, worker]
+    env_file: .env
+    environment:
+      DB_HOST: db
+    volumes:
+      - private_data:/app/private
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  db_data:
+  private_data:
+  static_data:

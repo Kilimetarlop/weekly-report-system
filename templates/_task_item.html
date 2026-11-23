@@ -1,0 +1,34 @@
+<div class="task-item{% if t.is_milestone %} is-milestone{% endif %}">
+  <div class="task-main">
+    <span class="task-title">{% if t.is_milestone %}<span class="diamond" aria-hidden="true"></span>{% endif %}{{ t.title }}{% if t.state %}<span class="badge {{ t.state.1 }}">{{ t.state.0 }}</span>{% endif %}</span>
+    <span class="muted small">{% if t.is_milestone %}里程碑 · {{ t.start|date:'Y-m-d' }}{% else %}{{ t.start|date:'Y-m-d' }} 至 {{ t.end|date:'Y-m-d' }}{% endif %}{% if t.kind == 'group' %} · {{ t.group.name }}{% with names=t.assignees.all %}{% if names %} · 负责：{% for a in names %}{{ a.name }}{% if not forloop.last %}、{% endif %}{% endfor %}{% endif %}{% endwith %}{% else %} · 个人任务{% endif %}</span>
+  </div>
+  {% if not t.is_milestone %}
+  <div class="task-progress"><div class="progress{% if t.end < today and t.progress < 100 %} late{% elif t.progress >= 100 %} done{% endif %}"><span style="width: {{ t.progress }}%"></span></div><span class="task-pct">{{ t.progress }}%</span></div>
+  {% endif %}
+  <div class="task-actions">
+    {% if editable and t.can_progress and not t.is_milestone %}
+    <form method="post" action="{% url 'task_progress' t.pk %}" class="progress-form">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="number" name="progress" min="0" max="100" step="5" value="{{ t.progress }}" aria-label="{{ t.title }}的进度"><span>%</span><button class="secondary small">更新进度</button></form>
+    {% endif %}
+    {% if editable and t.can_edit %}
+    <details class="drawer"><summary>修改</summary>
+      <form method="post" action="{% url 'task_edit' t.pk %}" class="form-grid">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <label>名称<input name="title" value="{{ t.title }}" maxlength="200" required></label>
+        {% if t.is_milestone %}<label>日期<input type="date" name="start" value="{{ t.start|date:'Y-m-d' }}" required></label>
+        {% else %}<label>开始<input type="date" name="start" value="{{ t.start|date:'Y-m-d' }}" required></label><label>结束<input type="date" name="end" value="{{ t.end|date:'Y-m-d' }}" required></label>{% endif %}
+        {% if members and t.kind == 'group' and not t.is_milestone %}<input type="hidden" name="has_assignees" value="1">
+        <fieldset class="checks"><legend>负责人</legend>{% for m in members %}<label class="check"><input type="checkbox" name="assignees" value="{{ m.pk }}"{% if m.pk in t.assignee_ids %} checked{% endif %}>{{ m.name }}</label>{% endfor %}</fieldset>{% endif %}
+        <div class="form-actions"><button class="small">保存</button></div>
+      </form>
+      <form method="post" action="{% url 'task_delete' t.pk %}" onsubmit="return confirm('确定删除这一项吗？')">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="danger small">删除</button></form>
+    </details>
+    {% endif %}
+    {% if is_super %}{# 批示属于查看功能：查看模式下也能写 #}
+    <details class="drawer"><summary>写批示</summary>
+      <form method="post" action="{% url 'instruction_create' %}" class="instruction-form">{% csrf_token %}<input type="hidden" name="target" value="task"><input type="hidden" name="task" value="{{ t.pk }}"><input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <textarea name="text" rows="2" maxlength="2000" required placeholder="对这个任务的进度写批示，负责人和组长会在首页看到……"></textarea><button class="small">发送批示</button>
+      </form>
+    </details>
+    {% endif %}
+  </div>
+</div>

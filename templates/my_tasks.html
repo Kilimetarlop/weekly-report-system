@@ -1,0 +1,29 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">我的任务</p>
+    <h1>任务与里程碑</h1>
+    <p class="muted">个人任务由你自己规划；小组任务由组长安排，你负责更新进度。</p>
+  </div>
+</div>
+
+<section class="card">
+  <div class="card-head"><h2>甘特图</h2></div>
+  {% include '_gantt.html' with chart=chart empty_text='还没有任务，可以在下面添加。' %}
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>添加个人任务</h2><span class="muted small">你的组长和最高权限能看到</span></div>
+  {% include '_task_add.html' with kind='personal' %}
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>我负责的小组任务</h2></div>
+  <div class="task-list">{% for t in assigned %}{% include '_task_item.html' with editable=True %}{% empty %}<p class="empty">组长还没有给你分配小组任务。</p>{% endfor %}</div>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>我的个人任务</h2></div>
+  <div class="task-list">{% for t in personal %}{% include '_task_item.html' with editable=True %}{% empty %}<p class="empty">还没有个人任务。</p>{% endfor %}</div>
+</section>
+{% endblock %}

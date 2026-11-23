@@ -1,0 +1,24 @@
+{% with r=my_report %}
+<div class="my-week">
+  {% if not my_can_write %}
+    <p>尚未到首次应交周期，首次截止：{{ my_first|date:'Y-m-d H:i' }}</p>
+  {% else %}
+    <div class="my-week-status">
+      {% if r and r.latest %}
+        {% if r.returned %}<span class="badge warn">待修改</span>{% else %}<span class="badge ok">已提交</span>{% endif %}
+        <span class="muted">v{{ r.latest.version }} · {{ r.latest.submitted_at|date:'m-d H:i' }} 提交</span>
+      {% elif my_has_draft %}<span class="badge pending">有草稿，尚未提交</span>
+      {% elif my_voluntary %}<span class="badge muted">选填</span>
+      {% elif my_late %}<span class="badge bad">逾期未交</span>
+      {% else %}<span class="badge pending">未提交</span>{% endif %}
+    </div>
+    <p class="muted">本周 {{ my_period }}{% if my_voluntary %} · 老师周报选填，没有截止时间{% else %} · 截止 {{ my_period.deadline|date:'n月j日 H:i' }}{% endif %}</p>
+    {% if r and r.latest and not r.returned and my_locked %}
+      <a class="button secondary" href="{% url 'person' user.pk %}?week={{ my_period.pk }}#report">查看已交周报</a>
+    {% else %}
+      <a class="button" href="{% url 'editor' my_period.pk %}">{% if r and r.latest %}{% if r.returned %}修改并重新提交{% else %}查看或修改{% endif %}{% else %}填写本周周报{% endif %}</a>
+    {% endif %}
+  {% endif %}
+  {% for event in open_returns %}<p class="notice" role="alert">{{ event.report.period }} 的周报被退回待修改（退回人：{{ event.operator.name }}）：{{ event.reason }} <a href="{% url 'editor' event.report.period.pk %}">去修改</a></p>{% endfor %}
+</div>
+{% endwith %}

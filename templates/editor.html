@@ -1,0 +1,30 @@
+{% extends 'base.html' %}{% load static %}{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">周报填写</p>
+    <h1>{{ period }}</h1>
+    <p class="muted">{% if voluntary %}老师周报选填，不计入提交率，没有截止时间{% else %}截止 {{ period.deadline|date:'Y-m-d H:i' }}（北京时间）{% endif %} · 每条先写<b>要点</b>（一句话，不超过 50 字），再写<b>详细阐述</b>（至少 {{ threshold }} 个有效字符：汉字、字母、十进制数字）。每一项写什么，看项目名下面的小字；没有内容就勾“本周无／暂无”。停笔约 2 秒自动暂存草稿，点“提交周报”才算正式提交。</p>
+  </div>
+</div>
+{% if report.latest %}<p class="muted">已交正式版本 v{{ report.latest.version }} · 首次提交 {{ report.first_submitted_at|date:'Y-m-d H:i' }} · <a href="{% url 'history' period.pk %}">查看版本</a></p>{% endif %}
+{% for event in returns %}{% if not event.resolved_id %}<p class="notice">待修改：{{ event.reason }}</p>{% endif %}{% endfor %}
+<form id="editor" data-period="{{ period.pk }}" data-revision="{{ revision }}" data-point-max="{{ point_max }}">{% csrf_token %}
+  {% for section, name, items in layout %}
+  <section class="card editor-section">
+    <h2>{{ name }}</h2>
+    {% for key, label, guide in items %}
+    <fieldset data-section="{{ section }}" data-key="{{ key }}" data-point-placeholder="{{ guide.1 }}" data-detail-placeholder="{{ guide.2 }}">
+      <legend>{{ label }}</legend>
+      <p class="field-guide">{{ guide.0 }}</p>
+      <label class="check none-check"><input type="checkbox" class="none"> 本周无／暂无</label>
+      <div class="items"></div>
+      <button type="button" class="add secondary small">＋ 添加一条</button>
+    </fieldset>
+    {% endfor %}
+  </section>
+  {% endfor %}
+  <div class="actions"><button type="button" id="submit">提交周报</button><button type="button" id="save" class="secondary">暂存草稿</button><span id="status" role="status">尚无未保存修改</span></div>
+  <p id="error" role="alert"></p>
+</form>
+{{ payload|json_script:'payload' }}<script src="{% static 'count.js' %}?v={{ v }}" defer></script><script src="{% static 'editor.js' %}?v={{ v }}" defer></script>
+{% endblock %}

@@ -1,0 +1,14 @@
+.env
+.packages/
+.runtime/
+postgres-binaries.zip
+__pycache__/
+*.pyc
+private/
+staticfiles/
+backups/
+.venv/
+*.log
+*.dump
+*.zip
+public-static/

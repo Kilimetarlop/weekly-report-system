@@ -1,0 +1,12 @@
+.packages
+.runtime
+postgres-binaries.zip
+.env
+.git
+private
+__pycache__
+backups
+# 示例样稿、本机打包文件和旧日志不进服务器镜像
+samples
+*.zip
+test-run.log

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">仅最高权限</p>
+    <h1>成员管理</h1>
+    <p class="muted">共 {{ users|length }} 个账号。身份标签如“2023级硕士”“2023级博士”“老师”；老师周报选填、不计入提交率。批量加人：点“批量导入”粘贴表格，或“下载成员表”改好后再导入（增量）。{% if not edit_mode %}单个新建、改身份年级课题、重置密码、排序和停用请点“进入编辑”。{% endif %}</p>
+  </div>
+  <div class="head-actions"><a class="button" href="{% url 'member_import' %}">批量导入</a><a class="button secondary" href="{% url 'member_roster' %}">下载成员表</a>{% include '_mode_toggle.html' %}</div>
+</div>
+
+{% if edit_mode %}
+<section class="card">
+  <div class="card-head"><h2>新建账号</h2><a class="button small" href="{% url 'member_import' %}">批量导入（粘贴表格或 Excel）</a></div>
+  <p class="muted small">账号和密码由最高权限统一设置，是成员的正式登录密码（不强制首次修改，成员可在“修改密码”中自行修改）。密码至少 8 位，不能是常见密码、不能全是数字、不能和账号或姓名太像。</p>
+  <form method="post" class="add-member">{% csrf_token %}<input type="hidden" name="action" value="create">
+    <label>姓名<input name="name" maxlength="150" required></label>
+    <label>账号（登录用，不区分大小写，不能含空格）<input name="account" maxlength="150" autocomplete="off" autocapitalize="none" spellcheck="false" required></label>
+    <label>密码<input name="password" autocomplete="new-password" required></label>
+    <label>身份<select name="identity">{% for value, label in identities %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></label>
+    <label>年级（入学年份，硕士、博士必填）<input name="grade" inputmode="numeric" maxlength="5" placeholder="如 2024"></label>
+    <label>课题名称（选填）<input name="topic" maxlength="200"></label>
+    <label>邮箱（选填）<input name="email" type="email"></label>
+    <button>创建账号</button>
+  </form>
+  <p class="muted small">创建后把账号和密码当面或私下告知本人；分组和组长在“<a href="{% url 'groups' %}">分组管理</a>”里设置。</p>
+</section>
+
+<section class="card">
+  <h2>成员顺序</h2>
+  <p class="muted small">按下列 ID 顺序填写，选部分人合订时保持相对顺序。</p>
+  <form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="sort"><input name="order" aria-label="成员 ID 顺序（英文逗号分隔）" value="{% for u in users %}{{ u.pk }}{% if not forloop.last %},{% endif %}{% endfor %}"><button class="secondary small">保存排序</button></form>
+</section>
+{% endif %}
+
+<section class="card">
+  <div class="table-wrap"><table>
+    <thead><tr><th>ID</th><th>姓名 / 账号</th><th>身份 / 课题</th><th>本周所属小组</th>{% if edit_mode %}<th>重置密码</th>{% endif %}<th>停用生效周期</th></tr></thead>
+    <tbody>
+    {% for u in users %}<tr>
+      <td>{{ u.pk }}</td>
+      <td>{% if u.is_staff %}{{ u.name }}{% else %}<a href="{% url 'person' u.pk %}">{{ u.name }}</a>{% endif %}<small>{{ u.account }}{% if u.email %} · {{ u.email }}{% endif %}</small>{% if u.is_staff %}<small>最高权限（只做管理、不交周报）</small>{% endif %}</td>
+      <td class="identity-cell">{% if u.is_staff %}<span class="muted">—</span>{% else %}
+        {% if u.tag %}<span class="badge tag">{{ u.tag }}</span>{% else %}学生{% endif %}{% if u.topic and not edit_mode %}<small>{{ u.topic }}</small>{% endif %}
+        {% if edit_mode %}<form method="post" class="identity-form" data-identity-was="{{ u.identity }}" data-name="{{ u.name }}">{% csrf_token %}<input type="hidden" name="action" value="identity"><input type="hidden" name="user" value="{{ u.pk }}"><select name="identity" aria-label="{{ u.name }}的身份">{% for value, label in identities %}<option value="{{ value }}"{% if value == u.identity %} selected{% endif %}>{{ label }}</option>{% endfor %}</select><input name="grade" value="{{ u.grade|default_if_none:'' }}" inputmode="numeric" maxlength="5" placeholder="年级" title="入学年份，如 2023；硕士、博士必填，老师不填" aria-label="{{ u.name }}的年级（入学年份）"><input name="topic" class="topic-input" value="{{ u.topic }}" maxlength="200" placeholder="课题名称" aria-label="{{ u.name }}的课题名称"><button class="secondary small">保存</button></form>{% endif %}
+      {% endif %}</td>
+      <td>{% if u.is_staff %}—{% else %}{% for g in u.current_groups %}{{ g.name }}{% if not forloop.last %}、{% endif %}{% empty %}未分组{% endfor %}{% endif %}</td>
+      {% if edit_mode %}<td>{% if u.is_staff %}<small>在服务器上用 changepassword 修改</small>{% else %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="reset"><input type="hidden" name="user" value="{{ u.pk }}"><input name="password" autocomplete="new-password" placeholder="新密码" aria-label="{{ u.name }}的新密码" required><button class="secondary small">重置</button></form>{% endif %}</td>{% endif %}
+      <td>{% if u.stop_period %}{{ u.stop_period }}{% elif edit_mode and not u.is_staff %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="stop"><input type="hidden" name="user" value="{{ u.pk }}"><select name="period">{% for p in future_periods %}<option value="{{ p.pk }}">{{ p }}</option>{% endfor %}</select><button class="secondary small">指定周期停用</button></form>{% else %}<span class="muted">—</span>{% endif %}</td>
+    </tr>{% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

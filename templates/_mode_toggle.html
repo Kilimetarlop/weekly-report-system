@@ -1,0 +1,1 @@
+{% if can_manage and not edit_mode %}<form method="post" action="{% url 'set_mode' %}" class="mode-toggle">{% csrf_token %}<input type="hidden" name="mode" value="edit"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="secondary small" title="进入编辑模式后才能修改任务、退回、免交、成员和分组">✎ 进入编辑</button></form>{% endif %}

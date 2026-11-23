@@ -1,0 +1,32 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-head">
+  <div><p class="eyebrow">仅最高权限</p><h1>系统设置与运行状态</h1></div>
+  {% include '_mode_toggle.html' %}
+</div>
+
+<section class="card">
+  <div class="card-head"><h2>设置</h2>{% if not edit_mode %}<span class="muted small">修改请点“进入编辑”</span>{% endif %}</div>
+  {% if edit_mode %}
+  <form method="post">{% csrf_token %}
+    <label>站点名称<input name="title" value="{{ config.title }}" required></label>
+    <label>详细阐述的最低有效字符数<input type="number" name="min_chars" value="{{ config.min_chars }}" min="1" max="10000" required></label>
+    {% if email_enabled %}<label>催交主题<textarea name="subject">{{ config.subject }}</textarea></label><label>催交正文<textarea name="body" rows="7">{{ config.body }}</textarea></label>
+    {% else %}<input type="hidden" name="subject" value="{{ config.subject }}"><input type="hidden" name="body" value="{{ config.body }}">{% endif %}
+    <button>保存设置</button>
+  </form>
+  {% else %}
+  <dl class="facts">
+    <dt>站点名称</dt><dd>{{ config.title }}</dd>
+    <dt>字数下限</dt><dd>详细阐述至少 {{ config.min_chars }} 个有效字符（已交版本不受修改影响）</dd>
+  </dl>
+  {% endif %}
+  {% if email_enabled %}{% if edit_mode %}<form method="post" action="{% url 'mail_test' %}">{% csrf_token %}<button class="secondary">发送测试邮件给当前管理员</button></form>{% endif %}
+  {% else %}<p class="muted">邮件功能：已关闭（EMAIL_ENABLED=false）。不发送催交、退回通知或重置密码邮件；忘记密码由最高权限在“成员管理”中重置。</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>运行状态</h2>
+  <p>磁盘剩余 {{ free_gb }} GB · 待导出 {{ queued }} · 待发邮件 {{ mail_queued }}</p>
+  <p>最近备份记录：{{ backup_status|default:'未找到成功备份记录' }}</p>
+</section>
+{% endblock %}

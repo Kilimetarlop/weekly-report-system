@@ -1,0 +1,71 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">{{ scope_label }}</p>
+    <h1>{% if is_leader %}小组概览{% else %}首页{% endif %}</h1>
+    <p class="muted">本周 {{ this_week }} · 截止 {{ this_week.deadline|date:'n月j日 H:i' }}</p>
+  </div>
+  <a class="button secondary" href="{% url 'manage_home' %}">周报管理（免交、退回、导出）</a>
+</div>
+
+{% if is_super and feedback %}{% include '_feedback_new.html' %}{% endif %}
+
+{% if is_leader %}{% include '_personal_bar.html' %}{% endif %}
+
+<div class="grid stats">
+  <div class="stat">
+    <span class="stat-label">本周提交率{% if before_deadline %} <small>截至目前</small>{% endif %}</span>
+    <span class="stat-value">{% if now.rate is not None %}{{ now.rate }}<small>%</small>{% else %}—{% endif %}</span>
+    <div class="meter"><span style="width: {{ now.rate|default:0 }}%"></span></div>
+    <span class="stat-hint">已交 {{ now.submitted }} / 应交 {{ now.required }}</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">上周提交率</span>
+    <span class="stat-value">{% if prev.rate is not None %}{{ prev.rate }}<small>%</small>{% else %}—{% endif %}</span>
+    <div class="meter muted"><span style="width: {{ prev.rate|default:0 }}%"></span></div>
+    <span class="stat-hint">已交 {{ prev.submitted }} / 应交 {{ prev.required }}</span>
+  </div>
+  <div class="stat{% if now.missing %} alert{% endif %}">
+    <span class="stat-label">本周未交</span>
+    <span class="stat-value">{{ now.missing }}<small>人</small></span>
+    <span class="stat-hint">{% if before_deadline %}截止前仍可提交{% else %}已过截止时间{% endif %}</span>
+  </div>
+  <div class="stat{% if now.returned %} warn{% endif %}">
+    <span class="stat-label">待修改</span>
+    <span class="stat-value">{{ now.returned }}<small>份</small></span>
+    <span class="stat-hint">已退回、尚未重交</span>
+  </div>
+</div>
+
+<h2 class="section-title">各小组 <small>点开小组查看组员、任务和周报</small></h2>
+<div class="grid cards">
+{% for card in cards %}
+  <a class="card group-card card-link-block" href="{% url 'group_page' card.group.pk %}">
+    <div class="card-head">
+      <h3>{{ card.group.name }}</h3>
+      <span class="muted small">组长 {% for l in card.leaders %}{{ l.name_with_title }}{% if not forloop.last %}、{% endif %}{% empty %}未设{% endfor %}</span>
+    </div>
+    <div class="pair">
+      <div><span class="muted small">本周</span><b>{{ card.now.submitted }}/{{ card.now.required }}</b>{% if card.now.rate is not None %}<small>{{ card.now.rate }}%</small>{% endif %}</div>
+      <div><span class="muted small">上周</span><b>{{ card.prev.submitted }}/{{ card.prev.required }}</b>{% if card.prev.rate is not None %}<small>{{ card.prev.rate }}%</small>{% endif %}</div>
+    </div>
+    <div class="meter"><span style="width: {{ card.now.rate|default:0 }}%"></span></div>
+    <h4>当前任务</h4>
+    {% for t in card.current_tasks %}
+      <div class="task-line"><span class="task-name" title="{{ t.title }}">{{ t.title }}</span><div class="progress"><span style="width: {{ t.progress }}%"></span></div><span class="task-pct">{{ t.progress }}%</span></div>
+    {% empty %}<p class="empty small">暂无进行中的任务</p>{% endfor %}
+    {% if card.milestone %}<p class="milestone-line"><span class="diamond" aria-hidden="true"></span>{{ card.milestone.title }} · {{ card.milestone.start|date:'n月j日' }}</p>{% endif %}
+    <span class="card-more">查看组员 {{ card.members|length }} 人 ›</span>
+  </a>
+{% empty %}
+  <section class="card"><p class="empty">还没有小组。{% if is_super %}<a href="{% url 'groups' %}">去分组管理建组</a>，或在成员管理里批量导入。{% endif %}</p></section>
+{% endfor %}
+{% if ungrouped %}
+  <section class="card group-card">
+    <div class="card-head"><h3>未分组成员</h3><span class="muted small">{{ ungrouped|length }} 人</span></div>
+    <p class="muted small">这些人不在任何小组里，只有最高权限能看到。</p>
+    <div class="chips">{% for m in ungrouped %}<a class="chip" href="{% url 'person' m.user.pk %}?via=0"><span class="dot {{ m.badge.1 }}"></span>{{ m.user.name }}{% if m.user.tag %}<small class="muted">{{ m.user.tag }}</small>{% endif %}<span class="badge {{ m.badge.1 }}">{{ m.badge.0 }}</span></a>{% endfor %}</div>
+  </section>
+{% endif %}
+</div>
+{% endblock %}

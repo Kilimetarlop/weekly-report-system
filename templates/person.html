@@ -1,0 +1,82 @@
+{% extends 'base.html' %}{% block content %}
+<div class="person-nav">
+  <a class="back" href="/">‹ 返回首页</a>
+  <div class="pager">
+    {% if sequence_total and position is not None %}
+    <span class="muted small">{% if group_name %}{{ group_name }} · {% endif %}第 {{ position|add:1 }}/{{ sequence_total }} 人</span>
+    {% if previous_url %}<a class="button secondary small" href="{{ previous_url }}">‹ 上一位</a>{% else %}<span class="button secondary small disabled" aria-disabled="true">‹ 上一位</span>{% endif %}
+    {% if next_url %}<a class="button small" href="{{ next_url }}">下一位 ›</a>{% else %}<span class="button small disabled" aria-disabled="true">下一位 ›</span>{% endif %}
+    {% endif %}
+    {% include '_mode_toggle.html' %}
+  </div>
+</div>
+
+<section class="card profile">
+  <div class="profile-head">
+    <div class="avatar" aria-hidden="true">{{ person.name|slice:':1' }}</div>
+    <div class="profile-name"><h1>{{ person.name }}{% if person.tag %} <span class="badge tag">{{ person.tag }}</span>{% endif %}</h1><span class="muted small">{{ person.account }}</span></div>
+    {% if this_badge %}<span class="badge {{ this_badge.1 }}">本周 {{ this_badge.0 }}</span>{% endif %}
+  </div>
+  <dl class="facts">
+    <dt>小组</dt>
+    <dd>{% for item in groups %}<a href="{% url 'group_page' item.group.pk %}">{{ item.group.name }}</a>（组长 {% for l in item.leaders %}{{ l.name_with_title }}{% if not forloop.last %}、{% endif %}{% empty %}未设{% endfor %}）{% if not forloop.last %}；{% endif %}{% empty %}未分组{% endfor %}</dd>
+    {% if person.topic %}<dt>课题</dt>
+    <dd>{{ person.topic }}</dd>{% endif %}
+    <dt>当前任务</dt>
+    <dd>{% for t in current_tasks %}<span class="task-pill">{{ t.title }} <b>{{ t.progress }}%</b><small>{% if t.group %}{{ t.group.name }}{% else %}个人{% endif %}</small></span>{% empty %}<span class="muted">暂无进行中的任务</span>{% endfor %}</dd>
+  </dl>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>任务与甘特图</h2>{% if not edit_mode and can_manage %}<span class="muted small">修改任务和进度请点“进入编辑”</span>{% endif %}</div>
+  {% include '_gantt.html' with chart=chart empty_text='还没有任务。' %}
+  {% if tasks %}<div class="task-list">{% for t in tasks %}{% include '_task_item.html' with editable=edit_mode %}{% endfor %}</div>{% endif %}
+</section>
+
+<section class="card" id="report">
+  <div class="card-head report-head">
+    <h2>周报</h2>
+    {% if selected %}
+    <form method="get" class="week-switch">
+      {% if older %}<a class="button secondary small" href="?week={{ older.pk }}{% if nav_query %}&{{ nav_query }}{% endif %}#report">‹ 上一周</a>{% endif %}
+      <select name="week" onchange="this.form.submit()" aria-label="选择周期">{% for w in weeks %}<option value="{{ w.period.pk }}"{% if w.period.pk == selected.pk %} selected{% endif %}>{{ w.period }} · {{ w.label }}</option>{% endfor %}</select>
+      {% if group_id %}<input type="hidden" name="group" value="{{ group_id }}">{% elif via_value is not None %}<input type="hidden" name="via" value="{{ via_value }}">{% endif %}
+      <noscript><button class="secondary small">查看</button></noscript>
+      {% if newer %}<a class="button secondary small" href="?week={{ newer.pk }}{% if nav_query %}&{{ nav_query }}{% endif %}#report">下一周 ›</a>{% endif %}
+    </form>
+    {% endif %}
+  </div>
+  {% if submission %}
+    <div class="report-meta"><p class="muted small">正式版本 v{{ submission.version }} · {{ submission.submitted_at|date:'Y-m-d H:i' }} 提交{% if report.returned %} · <span class="badge warn">待修改，统计仍用此版本</span>{% endif %} · 点要点展开详细阐述</p><button type="button" class="secondary small" data-expand-all="#report-body" hidden>全部展开</button></div>
+    {% include '_report.html' with blocks=blocks %}
+  {% elif selected %}<p class="empty">{{ selected }} 这一周还没有正式提交。</p>
+  {% elif person.is_teacher %}<p class="empty">老师周报选填，还没有提交。</p>
+  {% else %}<p class="empty">暂无可查看的周报。</p>{% endif %}
+
+  {% if report_instructions or can_instruct or can_return and edit_mode %}
+  <div class="review-bar">
+    {% if can_instruct and selected %}
+    <details class="drawer"><summary>写批示</summary>
+      <form method="post" action="{% url 'instruction_create' %}" class="instruction-form">{% csrf_token %}<input type="hidden" name="target" value="report"><input type="hidden" name="member" value="{{ person.pk }}"><input type="hidden" name="period" value="{{ selected.pk }}"><input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <textarea name="text" rows="2" maxlength="2000" required placeholder="对这一周的周报写批示，{{ person.name }}和组长会在首页看到并反馈……"></textarea>
+        <button>发送批示</button>
+      </form>
+    </details>
+    {% endif %}
+    {% if can_return and edit_mode %}
+    <details class="drawer"><summary>退回修改</summary>
+      <form method="post" action="{% url 'return' selected.pk person.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input name="reason" required placeholder="退回原因（必填，成员首页会显示）"><button class="secondary small">确认退回</button></form>
+    </details>
+    {% endif %}
+  </div>
+  {% if report_instructions %}<h3 class="sub-title">本周批示</h3>{% for i in report_instructions %}{% include '_instruction.html' %}{% endfor %}{% endif %}
+  {% endif %}
+</section>
+
+{% if other_instructions %}
+<section class="card">
+  <div class="card-head"><h2>其他相关批示</h2></div>
+  {% for i in other_instructions %}{% include '_instruction.html' %}{% endfor %}
+</section>
+{% endif %}
+{% endblock %}

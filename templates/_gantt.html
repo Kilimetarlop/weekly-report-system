@@ -1,0 +1,24 @@
+{% load l10n %}{% if chart.rows %}
+<div class="gantt" style="--weeks: {{ chart.weeks }}">
+  <div class="gantt-scroll">
+    <div class="gantt-grid">
+      <div class="gantt-line gantt-head">
+        <div class="gantt-label">任务</div>
+        <div class="gantt-months">{% for label, span, full in chart.months %}<span style="grid-column: span {{ span }}" title="{{ full }}">{{ label }}</span>{% endfor %}</div>
+      </div>
+      {% for row in chart.rows %}
+      <div class="gantt-line">
+        <div class="gantt-label" title="{{ row.tip }}">{% if row.task.is_milestone %}<span class="diamond" aria-hidden="true"></span>{% endif %}<span class="gantt-title">{{ row.task.title }}</span><small>{% if row.task.group %}{{ row.task.group.name }}{% else %}个人{% endif %}</small></div>
+        <div class="gantt-track">
+          {% if not row.visible %}<span class="gantt-out">不在显示范围内</span>
+          {% elif row.task.is_milestone %}<span class="gantt-milestone" style="grid-column: {{ row.col }}" title="{{ row.tip }}"></span>
+          {% else %}<span class="gantt-bar{% if row.late %} late{% endif %}{% if row.done %} done{% endif %}" style="grid-column: {{ row.col }} / span {{ row.span }}; --fill: {{ row.task.progress }}%" title="{{ row.tip }}"><em>{{ row.task.progress }}%</em></span>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      <div class="gantt-today" style="--offset: {{ chart.today_offset|unlocalize }}" data-offset="{{ chart.today_offset|unlocalize }}" data-weeks="{{ chart.weeks }}" data-date="{{ chart.today|date:'Y-m-d' }}" title="今天 {{ chart.today|date:'Y-m-d' }}"><span class="gantt-today-flag">{{ chart.today|date:'n/j' }}</span></div>
+    </div>
+  </div>
+  <p class="gantt-legend"><span><i class="key bar"></i>进度</span><span><i class="key late"></i>已过期未完成</span><span><i class="key done"></i>已完成</span><span><i class="key milestone"></i>里程碑</span><span><i class="key today"></i>今天</span><span class="muted">每格一周（周六至周五）</span></p>
+</div>
+{% else %}<p class="empty">{{ empty_text|default:'还没有任务。' }}</p>{% endif %}

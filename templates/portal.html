@@ -1,0 +1,72 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">周报管理</p>
+    <h1>{{ period }}</h1>
+    <p class="muted"><strong>{{ scope.label }}</strong> · 应交 {{ required }} · 已交（应交名单内）{{ submitted }} · 未交 {{ missing }} · 提交率 {{ rate }}</p>
+  </div>
+  {% include '_mode_toggle.html' %}
+</div>
+
+<section class="card">
+  <form method="get" class="scope-bar">
+    <label>查看范围
+      <select name="scope" onchange="this.form.submit()">{% for s in scopes %}<option value="{{ s.key }}" {% if s.key == scope.key %}selected{% endif %}>{{ s.label }}</option>{% endfor %}</select>
+    </label>
+    <label>切换周期
+      <select onchange="location.href='/manage/weeks/'+this.value+'/?scope='+encodeURIComponent('{{ scope.key|escapejs }}')">{% for p in periods %}<option value="{{ p.pk }}" {% if p.pk == period.pk %}selected{% endif %}>{{ p }}</option>{% endfor %}</select>
+    </label>
+    <label>状态筛选
+      <select name="state" onchange="this.form.submit()"><option value="">全部</option>{% for option in state_options %}<option {% if option == state_filter %}selected{% endif %}>{{ option }}</option>{% endfor %}</select>
+    </label>
+    <noscript><button class="secondary">筛选</button></noscript>
+  </form>
+  {% if email_enabled %}<p><a class="button" href="{% url 'reminders' period.pk %}?scope={{ scope.key|urlencode }}">预览并催交未提交人员</a></p>{% endif %}
+  {% if not edit_mode %}<p class="muted small">免交、退回等操作请点右上角“进入编辑”；查看和导出不需要进入编辑。</p>{% endif %}
+
+  <form id="export" method="post" action="{% url 'export' period.pk %}">{% csrf_token %}<input type="hidden" name="scope" value="{{ scope.key }}"></form>
+  <div class="table-wrap"><table><thead><tr><th>导出选择</th><th>姓名 / 账号</th><th>所属小组</th><th>状态</th><th>首次 / 最新正式时间</th>{% for col in columns %}<th>{{ col }}</th>{% endfor %}<th>科研合计</th><th>项目合计</th>{% if email_enabled %}<th>最近催交</th>{% endif %}{% if edit_mode %}<th>管理操作</th>{% endif %}</tr></thead><tbody>
+  {% for row in rows %}<tr>
+    <td><input form="export" type="checkbox" name="users" value="{{ row.user.pk }}" aria-label="选择{{ row.user.name }}"></td>
+    <td><a href="{% url 'person' row.user.pk %}">{{ row.user.name }}</a><small>{{ row.user.account }}</small></td>
+    <td>{% for g in row.groups %}{{ g.name }}{% if not forloop.last %}、{% endif %}{% empty %}未分组{% endfor %}</td>
+    <td>{{ row.state }}{% if row.latest %}<br><a href="{% url 'version' row.latest.pk %}">正式原文 v{{ row.latest.version }}</a>{% endif %}{% if row.open_return %}<small>退回人 {{ row.open_return.operator.name }}：{{ row.open_return.reason }}</small>{% endif %}{% for note in row.exempt_notes %}<small>{{ note }}</small>{% endfor %}{% if edit_mode and row.obligation.exempt and scope.key != 'all' and scope.key != 'ungrouped' %}<small>全局免交仅最高权限可改</small>{% endif %}</td>
+    <td>{{ row.report.first_submitted_at|default:'—' }}<br>{{ row.latest.submitted_at|default:'—' }}</td>
+    {% for count in row.count_values %}<td>{{ count|default_if_none:'—' }}</td>{% endfor %}
+    <td>{{ row.research_total|default_if_none:'—' }}</td><td>{{ row.project_total|default_if_none:'—' }}</td>
+    {% if email_enabled %}<td>{{ row.last_mail.updated_at|default:'—' }} {{ row.last_mail.state }}</td>{% endif %}
+    {% if edit_mode %}<td>{% for action in row.exempt_actions %}<form method="post" action="{% url 'exemption' period.pk row.user.pk %}">{% csrf_token %}<input type="hidden" name="scope" value="{{ scope.key }}"><input type="hidden" name="group" value="{{ action.group.pk|default:'' }}"><input type="hidden" name="exempt" value="{% if action.exempt %}0{% else %}1{% endif %}">{% if not action.exempt %}<input name="reason" placeholder="{{ action.label }}免交原因">{% endif %}<button class="secondary small">{% if action.exempt %}取消{{ action.label }}免交{% else %}{{ action.label }}免交（保留已交内容）{% endif %}</button></form>{% endfor %}
+      {% if row.latest and not row.report.returned %}<form method="post" action="{% url 'return' period.pk row.user.pk %}">{% csrf_token %}<input type="hidden" name="scope" value="{{ scope.key }}"><input name="reason" placeholder="必填退回原因" required><button class="secondary small">退回修改</button></form>{% endif %}</td>{% endif %}
+  </tr>{% empty %}<tr><td colspan="8">此范围在本周期没有成员</td></tr>{% endfor %}
+  </tbody></table></div>
+  <p class="muted small">— 表示未交或免交无正文；0 表示正式版本明确暂无。免交只计口径，不阻止成员自愿提交。</p>
+  {% if teacher_rows %}
+  <h3>老师周报（选填，不计入应交和提交率，也不进统计 Excel）</h3>
+  <div class="table-wrap"><table><thead><tr><th>合订选择</th><th>姓名 / 账号</th><th>所属小组</th><th>状态</th><th>首次 / 最新提交</th>{% if edit_mode %}<th>管理操作</th>{% endif %}</tr></thead><tbody>
+  {% for row in teacher_rows %}<tr>
+    <td><input form="export" type="checkbox" name="users" value="{{ row.user.pk }}" aria-label="选择{{ row.user.name }}"></td>
+    <td><a href="{% url 'person' row.user.pk %}">{{ row.user.name }}</a><small>{{ row.user.account }}</small></td>
+    <td>{% for g in row.groups %}{{ g.name }}{% if not forloop.last %}、{% endif %}{% empty %}未分组{% endfor %}</td>
+    <td>{{ row.state }}<br><a href="{% url 'version' row.latest.pk %}">正式原文 v{{ row.latest.version }}</a>{% if row.open_return %}<small>退回人 {{ row.open_return.operator.name }}：{{ row.open_return.reason }}</small>{% endif %}</td>
+    <td>{{ row.report.first_submitted_at }}<br>{{ row.latest.submitted_at }}</td>
+    {% if edit_mode %}<td>{% if not row.report.returned %}<form method="post" action="{% url 'return' period.pk row.user.pk %}">{% csrf_token %}<input type="hidden" name="scope" value="{{ scope.key }}"><input name="reason" placeholder="必填退回原因" required><button class="secondary small">退回修改</button></form>{% endif %}</td>{% endif %}
+  </tr>{% endfor %}
+  </tbody></table></div>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>导出</h2>
+  <div class="inline-forms"><button form="export">创建所选人员 Word / PDF 合订快照</button><button form="export" formaction="{% url 'xlsx' period.pk %}" class="secondary">导出所选统计 XLSX</button></div>
+  <p>统计类型 <label class="check"><input form="export" type="checkbox" name="types" value="status" checked>提交情况</label> <label class="check"><input form="export" type="checkbox" name="types" value="counts" checked>要点统计</label></p>
+  <details><summary>选择导出列（每类不选则导出该类全部；姓名、账号、状态、所属小组保留）</summary><label class="check"><input form="export" type="checkbox" name="columns" value="s0">是否应交</label> <label class="check"><input form="export" type="checkbox" name="columns" value="s1">是否免交</label> <label class="check"><input form="export" type="checkbox" name="columns" value="s2">首次提交时间</label> <label class="check"><input form="export" type="checkbox" name="columns" value="s3">最新提交时间</label> <label class="check"><input form="export" type="checkbox" name="columns" value="s4">首次是否逾期</label> <label class="check"><input form="export" type="checkbox" name="columns" value="s5">是否待修改</label>{% for col in columns %} <label class="check"><input form="export" type="checkbox" name="columns" value="{{ forloop.counter0 }}">{{ col }}</label>{% endfor %}</details>
+  <h3>导出任务</h3><ul>{% for job in jobs %}<li><a href="{% url 'job' job.pk %}">任务 {{ job.pk }} · {{ job.state }}</a> · {{ job.manifest.scope.label|default:'全部人员' }} · {{ job.creator.name }}</li>{% empty %}<li>无</li>{% endfor %}</ul>
+</section>
+
+{% if email_enabled %}
+<section class="card">
+  <h2>邮件记录</h2><p class="muted small">accepted 仅表示 SMTP 已接受，不代表进入收件箱。</p>
+  <ul>{% for mail in mails %}<li>{{ mail.user.name }} · {{ mail.kind }} · {{ mail.state }} · {{ mail.updated_at }}{% if mail.operator %} · 发起人 {{ mail.operator.name }}{% endif %} {{ mail.error }}{% if edit_mode and mail.state == 'failed' or edit_mode and mail.state == 'uncertain' %}<form method="post" action="{% url 'mail_retry' mail.pk %}">{% csrf_token %}<input type="hidden" name="scope" value="{{ scope.key }}"><label class="check"><input type="checkbox" name="verified" value="1">已核查不确定发送结果，确认可重试</label><button class="secondary small">明确重试</button></form>{% endif %}</li>{% empty %}<li>无</li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% endblock %}

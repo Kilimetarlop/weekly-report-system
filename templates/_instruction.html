@@ -1,0 +1,39 @@
+<div class="instruction{% if i.withdrawn_at %} withdrawn{% endif %}">
+  <div class="instruction-meta">
+    <span><b>{{ i.author.name }}</b> 批示 · {{ i.subject }}</span>
+    <span class="muted">{{ i.created_at|date:'m-d H:i' }}</span>
+    {% if is_super %}
+      {% if i.withdrawn_at %}<span class="badge muted">已撤回</span>
+      {% else %}
+        <span class="badge {% if i.responded_count == i.total_count %}ok{% else %}info{% endif %}">反馈 {{ i.responded_count }}/{{ i.total_count }}</span>
+        {% if edit_mode %}<form method="post" action="{% url 'instruction_withdraw' i.pk %}" class="inline" onsubmit="return confirm('撤回这条批示？收件人将不再看到它。')">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="link">撤回</button></form>{% endif %}
+      {% endif %}
+    {% endif %}
+  </div>
+  <p>{{ i.text|linebreaksbr }}</p>
+
+  {% if is_super and i.feedback and not i.withdrawn_at %}
+  <ul class="feedback-list">
+    {% for r in i.feedback %}
+    <li><b>{{ r.user.name }}</b>
+      {% if r.status %}<span class="badge {% if r.status == 'done' %}ok{% elif r.status == 'blocked' %}bad{% else %}info{% endif %}">{{ r.get_status_display }}</span>{% if r.note %}<span class="feedback-note">{{ r.note }}</span>{% endif %}<span class="muted small">{{ r.responded_at|date:'m-d H:i' }}</span>
+      {% else %}<span class="muted small">{% if r.read_at %}已读，尚未反馈{% else %}未读{% endif %}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if feedback_form and i.my_receipt %}{% with r=i.my_receipt %}
+    {% if r.status %}<p class="my-feedback">我的反馈：<span class="badge {% if r.status == 'done' %}ok{% elif r.status == 'blocked' %}bad{% else %}info{% endif %}">{{ r.get_status_display }}</span>{% if r.note %} {{ r.note }}{% endif %} <span class="muted small">{{ r.responded_at|date:'m-d H:i' }}</span></p>{% endif %}
+    {% if r.status %}<details class="drawer"><summary>修改反馈</summary>{% endif %}
+    <form method="post" action="{% url 'instruction_feedback' i.pk %}" class="feedback-form">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <input name="note" maxlength="1000" value="{{ r.note }}" placeholder="说明（选填）：落实情况，或遇到了什么困难" aria-label="反馈说明">
+      <div class="feedback-buttons">
+        <button name="status" value="noted" class="secondary small">已知悉</button>
+        <button name="status" value="done" class="small">已落实</button>
+        <button name="status" value="blocked" class="danger small">有困难</button>
+      </div>
+    </form>
+    {% if r.status %}</details>{% endif %}
+  {% endwith %}{% endif %}
+</div>

@@ -1,0 +1,60 @@
+{% extends 'base.html' %}{% load static %}
+{% block page_title %}登录 · {{ site_title }}{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'auth.css' %}?v={{ v }}">
+<script src="{% static 'auth.js' %}?v={{ v }}" defer></script>
+{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block layout_class %}plain{% endblock %}
+{% block header %}{% endblock %}
+{% block main_class %}auth-shell{% endblock %}
+{% block content %}
+<aside class="auth-intro" aria-label="周报系统介绍">
+  <a class="auth-brand" href="{% url 'login' %}">
+    <span class="brand-symbol" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span>{{ site_title }}</span>
+  </a>
+  <div class="intro-copy">
+    <p class="intro-label">每周工作记录</p>
+    <h1>科研进展<br>与项目推进</h1>
+    <p class="intro-description">记录本周工作与取得的结果，<br>梳理问题，安排下一周计划。</p>
+    <div class="week-illustration" aria-hidden="true">
+      <div class="sheet-top"><span>WEEKLY REPORT</span><span>01—07</span></div>
+      <div class="sheet-lines"><b></b><i></i><i></i><i></i></div>
+      <div class="sheet-section"><span class="sheet-dot"></span><span>科研进展</span><span class="sheet-line"></span></div>
+      <div class="sheet-section"><span class="sheet-dot second"></span><span>项目推进</span><span class="sheet-line"></span></div>
+      <div class="sheet-bottom"><span>本周记录</span><span class="sheet-arrow">↗</span></div>
+    </div>
+  </div>
+  <div class="intro-footer"><span>报告周期 · 周六至周五</span><span>北京时间</span></div>
+</aside>
+<section class="auth-entry" aria-labelledby="login-heading">
+  <div class="entry-top"><span class="entry-dot" aria-hidden="true"></span>课题组内部使用</div>
+  <div class="login-panel">
+    <p class="entry-label">成员登录</p>
+    <h2 id="login-heading">欢迎回来</h2>
+    <p class="entry-description">登录后，继续填写你的每周工作记录。</p>
+    <form method="post" id="login-form">
+      {% csrf_token %}
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+      {% if form.non_field_errors %}
+      <div class="auth-error" role="alert">账号或密码不正确，或账号当前不可用，请重新检查。</div>
+      {% endif %}
+      <div class="auth-field">
+        <label for="{{ form.username.id_for_label }}">账号</label>
+        {{ form.username }}
+        {% for error in form.username.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+      </div>
+      <div class="auth-field">
+        <div class="password-label"><label for="{{ form.password.id_for_label }}">密码</label><a href="{% url 'password_reset' %}">忘记密码？</a></div>
+        <div class="password-input">{{ form.password }}<button type="button" class="password-toggle" aria-label="显示密码" aria-controls="id_password" aria-pressed="false" hidden>显示</button></div>
+        {% for error in form.password.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+      </div>
+      <button type="submit" class="login-submit">登录<span aria-hidden="true">→</span></button>
+    </form>
+    <div class="account-help"><span class="help-symbol" aria-hidden="true">i</span><p>账号和密码由管理员统一发放。<br>忘记密码请联系管理员重置。</p></div>
+  </div>
+  <div class="entry-footer"><span>{{ site_title }}</span><span>每周五 18:00 截止 · 北京时间</span></div>
+</section>
+{% endblock %}
+{% block footer %}{% endblock %}

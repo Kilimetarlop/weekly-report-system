@@ -1,0 +1,11 @@
+{% extends 'base.html' %}{% block content %}
+<h1>{{ period }} 催交预览</h1>
+<p>范围：<strong>{{ scope.label }}</strong>。只向勾选人员逐人发送；发送前按同一范围再次检查是否仍需催交。12 小时内已被任何范围催过的人默认不勾选。</p>
+<form method="post">{% csrf_token %}<input type="hidden" name="batch" value="{{ batch }}"><input type="hidden" name="scope" value="{{ scope.key }}">
+{% for entry in entries %}<label><input type="checkbox" name="users" value="{{ entry.user.pk }}" {% if entry.checked %}checked{% endif %}>{{ entry.user.name }} {{ entry.user.account }}{% if entry.recent %} <small class="recent">已于 {{ entry.recent.created_at|date:'m-d H:i' }} 被“{{ entry.recent_label }}”催过</small>{% endif %}</label>
+{% empty %}<p>没有符合条件的收件人</p>{% endfor %}
+{% if can_edit %}<label>主题<textarea name="subject">{{ subject }}</textarea></label><label>正文<textarea name="body" rows="8">{{ body }}</textarea></label><p>允许变量：{% templatetag openvariable %}姓名{% templatetag closevariable %}、报告周期、截止时间、填写入口、站点名。</p>
+{% else %}<p>组长使用系统统一的催交模板。</p><label>主题<textarea readonly>{{ subject }}</textarea></label><label>正文<textarea rows="6" readonly>{{ body }}</textarea></label>{% endif %}
+<button name="action" value="preview" class="secondary">更新预览</button> <button name="action" value="send">确认排队发送</button></form>
+{% for u,body in previews %}<h2>{{ u.name }}</h2><pre>{{ body }}</pre>{% endfor %}
+{% endblock %}

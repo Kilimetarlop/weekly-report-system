@@ -1,0 +1,14 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">正式版本（不可修改）</p>
+    <h1>{{ submission.report.user.name }} · {{ submission.report.period }}</h1>
+    <p class="muted">v{{ submission.version }} · {{ submission.submitted_at|date:'Y-m-d H:i' }} 提交 · 提交时字数下限 {{ submission.threshold }}</p>
+  </div>
+</div>
+<section class="card">
+  <div class="card-head"><h2>周报内容</h2><button type="button" class="secondary small" data-expand-all="#report-body" hidden>全部展开</button></div>
+  <p class="muted small">先看要点，点要点展开详细阐述。</p>
+  {% include '_report.html' with blocks=blocks %}
+</section>
+{% endblock %}

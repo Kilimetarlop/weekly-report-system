@@ -1,0 +1,5 @@
+<div class="import-options">
+  <label>新成员没填小组的，加入<select name="group"><option value="">不加入（之后在分组管理里分）</option>{% for g in groups %}<option value="{{ g.pk }}"{% if g.pk == group_id %} selected{% endif %}>{{ g.name }}</option>{% endfor %}</select></label>
+  <label>分组从这天所在的周起生效<input type="date" name="start" value="{{ start }}" required></label>
+  <div class="import-buttons"><button name="action" value="check" class="secondary">检查（不写入）</button><button name="action" value="import">导入</button></div>
+</div>

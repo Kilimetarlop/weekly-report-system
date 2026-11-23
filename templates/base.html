@@ -1,0 +1,63 @@
+{% load static %}<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block page_title %}{{ site_title }}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'site.css' %}?v={{ v }}">
+  <script src="{% static 'ui.js' %}?v={{ v }}" defer></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+<div class="{% block layout_class %}{% if user.is_authenticated %}app{% else %}plain{% endif %}{% endblock %}">
+{% block header %}
+{% if user.is_authenticated %}
+{% with name=request.resolver_match.url_name %}
+<aside class="sidebar">
+  <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>{{ site_title }}</span></a>
+  <nav class="nav" aria-label="主导航">
+    {% with kw=request.resolver_match.kwargs %}
+    {% if is_leader %}
+      {# 组长：个人的事和小组的事分开（2026-11-17） #}
+      <p class="nav-label">我的</p>
+      <a href="{% url 'my_home' %}" class="{% if name == 'my_home' or name == 'editor' or name == 'history' or name == 'person' and kw.user_id == user.pk %}active{% endif %}">我的周报{% if unread_count %}<span class="count" title="待反馈的批示">{{ unread_count }}</span>{% endif %}</a>
+      <a href="{% url 'my_tasks' %}" class="{% if name == 'my_tasks' %}active{% endif %}">我的任务</a>
+      <p class="nav-label">小组管理</p>
+      <a href="/" class="{% if name == 'home' or name == 'person' and kw.user_id != user.pk %}active{% endif %}">小组概览</a>
+      {% for g in led_groups %}<a href="{% url 'group_page' g.pk %}" class="nav-group{% if name == 'group_page' and kw.group_id == g.pk %} active{% endif %}">{{ g.name }}</a>{% endfor %}
+      <a href="{% url 'manage_home' %}" class="{% if name == 'portal' or name == 'job' %}active{% endif %}">周报管理</a>
+    {% else %}
+    <a href="/" class="{% if name == 'home' or name == 'person' or name == 'group_page' %}active{% endif %}">首页{% if unread_count %}<span class="count" title="未读批示">{{ unread_count }}</span>{% endif %}</a>
+    {% endif %}
+    {% endwith %}
+    {% if is_super %}
+      <a href="{% url 'instruction_list' %}" class="{% if name == 'instruction_list' %}active{% endif %}">批示记录{% if feedback_count %}<span class="count" title="新的批示反馈">{{ feedback_count }}</span>{% endif %}</a>
+      <a href="{% url 'manage_home' %}" class="{% if name == 'portal' or name == 'reminders' or name == 'job' %}active{% endif %}">周报管理</a>
+      <a href="{% url 'members' %}" class="{% if name == 'members' or name == 'member_import' %}active{% endif %}">成员管理</a>
+      <a href="{% url 'groups' %}" class="{% if name == 'groups' %}active{% endif %}">分组管理</a>
+      <a href="{% url 'settings' %}" class="{% if name == 'settings' %}active{% endif %}">系统设置</a>
+    {% elif not is_leader %}
+      <a href="{% url 'my_tasks' %}" class="{% if name == 'my_tasks' %}active{% endif %}">我的任务</a>
+    {% endif %}
+  </nav>
+  <div class="sidebar-foot">
+    <div class="who"><b>{{ user.name }}</b><small>{{ role_label }}</small></div>
+    <a href="{% url 'help' %}" class="{% if name == 'help' %}active{% endif %}">使用说明</a>
+    <a href="{% url 'password_change' %}" class="{% if name == 'password_change' %}active{% endif %}">修改密码</a>
+    <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="link">退出</button></form>
+  </div>
+</aside>
+{% endwith %}
+{% else %}
+<header class="topbar"><a class="brand" href="{% url 'login' %}"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>{{ site_title }}</span></a></header>
+{% endif %}
+{% endblock %}
+<main class="content {% block main_class %}{% endblock %}">
+  {% if edit_mode %}<div class="mode-banner" role="status"><span><b>✎ 编辑模式</b>：可以修改任务和进度、组员课题、退回、免交、成员和分组。改完点“完成编辑”回到查看模式。</span><form method="post" action="{% url 'set_mode' %}">{% csrf_token %}<input type="hidden" name="mode" value="view"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="small">✓ 完成编辑</button></form></div>{% endif %}
+  {% for message in messages %}<p role="alert" class="notice{% if message.tags == 'success' %} success{% endif %}">{{ message }}</p>{% endfor %}
+  {% block content %}{% endblock %}
+  {% block footer %}<footer class="foot">时间均为北京时间 · 暂存草稿不等于正式提交</footer>{% endblock %}
+</main>
+</div>
+</body>
+</html>

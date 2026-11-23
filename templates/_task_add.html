@@ -1,0 +1,15 @@
+<div class="grid two add-forms">
+  <form method="post" action="{% url 'task_create' %}" class="form-block">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="kind" value="{{ kind }}">{% if group %}<input type="hidden" name="group" value="{{ group.pk }}">{% endif %}
+    <h3>新任务</h3>
+    <label>名称<input name="title" maxlength="200" required placeholder="例如：数据采集"></label>
+    <div class="form-row"><label>开始<input type="date" name="start" value="{{ today|date:'Y-m-d' }}" required></label><label>结束<input type="date" name="end" required></label></div>
+    {% if members %}<fieldset class="checks"><legend>负责人</legend>{% for m in members %}<label class="check"><input type="checkbox" name="assignees" value="{{ m.pk }}">{{ m.name }}</label>{% endfor %}</fieldset>{% endif %}
+    <button>添加任务</button>
+  </form>
+  <form method="post" action="{% url 'task_create' %}" class="form-block">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="kind" value="{{ kind }}"><input type="hidden" name="milestone" value="1">{% if group %}<input type="hidden" name="group" value="{{ group.pk }}">{% endif %}
+    <h3>新里程碑 <small class="muted">只有一个日期的关键节点</small></h3>
+    <label>名称<input name="title" maxlength="200" required placeholder="例如：中期检查"></label>
+    <label>日期<input type="date" name="start" required></label>
+    <button class="secondary">添加里程碑</button>
+  </form>
+</div>

@@ -1,0 +1,14 @@
+{# 组长的小组概览顶部：只留一行“我的”提醒，个人的周报、批示、任务都在侧栏“我的”里 #}
+<div class="personal-bar" role="note">
+  <span class="personal-bar-title">我的</span>
+  {% with r=my_report %}
+    {% if not my_can_write %}<span class="muted">本周周报：尚未到首次应交周期（首次截止 {{ my_first|date:'n月j日 H:i' }}）</span>
+    {% elif r and r.latest and r.returned %}<span>本周周报 <span class="badge warn">待修改</span></span><a class="button small" href="{% url 'editor' my_period.pk %}">去修改</a>
+    {% elif r and r.latest %}<span>本周周报 <span class="badge ok">已提交</span></span><a class="button secondary small" href="{% url 'my_home' %}">查看</a>
+    {% elif my_has_draft %}<span>本周周报 <span class="badge pending">有草稿，尚未提交</span></span><a class="button small" href="{% url 'editor' my_period.pk %}">继续填写</a>
+    {% elif my_voluntary %}<span>本周周报 <span class="badge muted">选填</span></span><a class="button secondary small" href="{% url 'editor' my_period.pk %}">去填写</a>
+    {% elif my_late %}<span>本周周报 <span class="badge bad">逾期未交</span></span><a class="button small" href="{% url 'editor' my_period.pk %}">去补交</a>
+    {% else %}<span>本周周报 <span class="badge pending">未提交</span> <span class="muted small">截止 {{ my_period.deadline|date:'n月j日 H:i' }}</span></span><a class="button small" href="{% url 'editor' my_period.pk %}">去填写</a>{% endif %}
+  {% endwith %}
+  {% if unread %}<span>待反馈的批示 <span class="badge bad">{{ unread|length }}</span></span><a class="button secondary small" href="{% url 'my_home' %}">去反馈</a>{% endif %}
+</div>

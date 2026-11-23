@@ -1,0 +1,47 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">{% if is_leader %}我的 · 个人的周报、批示和任务（小组的事在侧栏“小组管理”）{% else %}我的工作台{% endif %}</p>
+    <h1>{{ period }}</h1>
+    <p class="muted">{% if my_groups %}所在小组：{% for item in my_groups %}{{ item.group.name }}{% if item.leaders %}（组长：{% for leader in item.leaders %}{{ leader.name_with_title }}{% if not forloop.last %}、{% endif %}{% endfor %}）{% endif %}{% if not forloop.last %}；{% endif %}{% endfor %}{% else %}所在小组：未分组{% endif %}{% if user.topic %} · 课题：{{ user.topic }}{% endif %}{% if user.tag %} <span class="badge tag">{{ user.tag }}</span>{% endif %}</p>
+  </div>
+</div>
+
+<div class="grid two">
+  <section class="card">
+    <div class="card-head"><h2>本周周报</h2>{% if my_voluntary %}<span class="muted small">选填，不计入提交率</span>{% endif %}</div>
+    {% include '_my_week.html' %}
+  </section>
+  <section class="card">
+    <div class="card-head"><h2>待反馈的批示</h2>{% if unread %}<span class="badge bad">{{ unread|length }}</span>{% endif %}</div>
+    {% for i in unread %}{% include '_instruction.html' with feedback_form=True %}{% empty %}<p class="empty">没有待反馈的批示。</p>{% endfor %}
+    {% if recent %}<details class="recent-list"><summary>最近已反馈的批示（{{ recent|length }}）</summary>{% for i in recent %}{% include '_instruction.html' with feedback_form=True %}{% endfor %}</details>{% endif %}
+  </section>
+</div>
+
+<section class="card">
+  <div class="card-head"><h2>我的任务</h2><a class="button secondary small" href="{% url 'my_tasks' %}">管理我的任务</a></div>
+  {% if current_tasks %}<div class="pills">{% for t in current_tasks %}<span class="task-pill">{{ t.title }} <b>{{ t.progress }}%</b><small>{% if t.group %}{{ t.group.name }}{% else %}个人{% endif %}</small></span>{% endfor %}</div>{% endif %}
+  {% include '_gantt.html' with chart=chart empty_text='还没有任务。点右上角“管理我的任务”添加个人任务或里程碑。' %}
+</section>
+
+{% for gc in group_charts %}
+<section class="card">
+  <div class="card-head"><h2>{{ gc.group.name }} · 小组任务</h2><a class="small" href="{% url 'group_page' gc.group.pk %}">打开小组页 ›</a></div>
+  {% include '_gantt.html' with chart=gc.chart empty_text='组长还没有安排小组任务。' %}
+</section>
+{% endfor %}
+
+<section class="card">
+  <div class="card-head"><h2>我的历史周报</h2></div>
+  <div class="history">
+    {% for h in history %}
+    <div class="history-row">
+      <span class="history-period">{{ h.period }}</span>
+      {% if h.report and h.report.latest %}<span class="badge {% if h.report.returned %}warn{% else %}ok{% endif %}">{% if h.report.returned %}待修改{% else %}已交 v{{ h.report.latest.version }}{% endif %}</span>{% elif is_teacher %}<span class="badge pending">草稿</span>{% else %}<span class="badge pending">未交</span>{% endif %}
+      <span class="history-actions">{% if h.report.latest or not is_teacher %}<a href="{% url 'person' user.pk %}?week={{ h.period.pk }}#report">查看</a>{% endif %}<a href="{% url 'editor' h.period.pk %}">填写 / 修改</a></span>
+    </div>
+    {% empty %}<p class="empty">暂无历史记录。</p>{% endfor %}
+  </div>
+</section>
+{% endblock %}

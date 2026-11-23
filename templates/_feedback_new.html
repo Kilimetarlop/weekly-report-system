@@ -1,0 +1,17 @@
+<section class="card feedback-card">
+  <div class="card-head">
+    <h2>批示反馈 <span class="badge bad">{{ feedback|length }} 条新反馈</span></h2>
+    <form method="post" action="{% url 'feedback_seen' %}" class="inline">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="secondary small">全部标为已阅</button></form>
+  </div>
+  {% for r in feedback %}
+  <div class="feedback-item">
+    <div class="feedback-head">
+      <span class="badge {% if r.status == 'done' %}ok{% elif r.status == 'blocked' %}bad{% else %}info{% endif %}">{{ r.get_status_display }}</span>
+      <b>{{ r.user.name }}</b><span class="muted small">回复了你的批示「{{ r.instruction.subject }}」· {{ r.responded_at|date:'m-d H:i' }}</span>
+      <form method="post" action="{% url 'feedback_seen' %}" class="inline push-right">{% csrf_token %}<input type="hidden" name="receipt" value="{{ r.pk }}"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="link">已阅</button></form>
+    </div>
+    {% if r.note %}<p class="feedback-note">{{ r.note }}</p>{% endif %}
+    <p class="muted small">原批示：{{ r.instruction.text|truncatechars:80 }}</p>
+  </div>
+  {% endfor %}
+</section>

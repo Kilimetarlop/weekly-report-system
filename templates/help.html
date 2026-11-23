@@ -1,0 +1,32 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">使用说明</p>
+    <h1>{{ manual.title }}</h1>
+    <p class="muted">{{ manual.intro }}</p>
+  </div>
+  <a class="button secondary" href="{% url 'help_docx' role %}">下载 Word 版（可打印）</a>
+</div>
+
+{% if roles|length > 1 %}
+<nav class="help-tabs" aria-label="选择手册">{% for key, label in roles %}<a href="?role={{ key }}" class="{% if key == role %}active{% endif %}">{{ label }}手册</a>{% endfor %}</nav>
+{% endif %}
+
+<section class="card help">
+  <h2>目录</h2>
+  <ol class="help-toc">{% for title, blocks in manual.sections %}<li><a href="#s{{ forloop.counter }}">{{ title }}</a></li>{% endfor %}</ol>
+</section>
+
+{% for title, blocks in manual.sections %}
+<section class="card help" id="s{{ forloop.counter }}">
+  <h2>{{ forloop.counter }}. {{ title }}</h2>
+  {% for kind, value in blocks %}
+    {% if kind == 'p' %}<p>{{ value }}</p>
+    {% elif kind == 'h' %}<h3>{{ value }}</h3>
+    {% elif kind == 'steps' %}<ol class="help-steps">{% for text in value %}<li>{{ text }}</li>{% endfor %}</ol>
+    {% elif kind == 'list' %}<ul class="help-list">{% for text in value %}<li>{{ text }}</li>{% endfor %}</ul>
+    {% elif kind == 'tip' %}<p class="help-tip"><b>提示：</b>{{ value }}</p>{% endif %}
+  {% endfor %}
+</section>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">小组</p>
+    <h1>{{ group.name }}</h1>
+    <p class="muted">组长 {% for l in leaders %}{{ l.name_with_title }}{% if not forloop.last %}、{% endif %}{% empty %}未设{% endfor %} · 本周 {{ members|length }} 人{% if can_manage_people %} · 本周已交 {{ now.submitted }}/{{ now.required }} · 上周 {{ prev.submitted }}/{{ prev.required }}{% endif %}</p>
+  </div>
+  <div class="head-actions">{% if can_edit %}{% include '_mode_toggle.html' %}{% endif %}<a class="button secondary" href="/">‹ 返回首页</a></div>
+</div>
+
+{% if can_manage_people %}
+<section class="card">
+  <div class="card-head"><h2>组员</h2><span class="muted small">{% if can_edit and edit_mode %}在每个组员下面填课题名称，点“保存”；清空后保存即删除课题{% else %}点组员查看任务甘特图和周报，可在组内“上一位 / 下一位”连续翻看{% if can_edit %}；设置课题请点“进入编辑”{% endif %}{% endif %}</span></div>
+  <div class="member-list">
+    {% for m in members %}
+    <div class="member-entry" id="member-{{ m.pk }}">
+    <a class="member-item" href="{% url 'person' m.pk %}?group={{ group.pk }}">
+      <span class="avatar small" aria-hidden="true">{{ m.name|slice:':1' }}</span>
+      <span class="member-name"><b>{{ m.name }}</b>{% if m.tag %}<span class="badge tag">{{ m.tag }}</span>{% endif %}{% if m.is_leader %}<span class="badge info">组长</span>{% endif %}{% if m.badge %}<span class="badge {{ m.badge.1 }}">本周 {{ m.badge.0 }}</span>{% endif %}{% if m.topic %}<span class="member-topic">{{ m.topic }}</span>{% endif %}</span>
+      <span class="member-tasks">
+        {% for t in m.active_tasks %}<span class="member-task"><span class="member-task-title">{{ t.title }}</span><span class="progress{% if t.state.1 == 'bad' %} late{% endif %}"><span style="width: {{ t.progress }}%"></span></span><span class="task-pct">{{ t.progress }}%</span><span class="badge {{ t.state.1 }}">{{ t.state.0 }}</span></span>
+        {% empty %}<span class="muted small">暂无进行中的任务</span>{% endfor %}
+        {% if m.upcoming or m.finished %}<span class="muted small">{% if m.upcoming %}未开始 {{ m.upcoming }} 项{% endif %}{% if m.upcoming and m.finished %} · {% endif %}{% if m.finished %}已完成 {{ m.finished }} 项{% endif %}</span>{% endif %}
+      </span>
+      <span class="member-go" aria-hidden="true">›</span>
+    </a>
+    {% if can_edit and edit_mode %}<form method="post" action="{% url 'member_topic' m.pk %}" class="topic-form">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}#member-{{ m.pk }}"><label for="topic-{{ m.pk }}">课题</label><input id="topic-{{ m.pk }}" name="topic" value="{{ m.topic }}" maxlength="200" placeholder="{{ m.name }}的课题名称"><button class="secondary small">保存</button></form>{% endif %}
+    </div>
+    {% empty %}<p class="empty">本周没有组员。</p>{% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="card">
+  <div class="card-head"><h2>小组任务甘特图</h2></div>
+  {% include '_gantt.html' with chart=chart empty_text='还没有小组任务。' %}
+</section>
+
+{% if can_edit and edit_mode %}
+<section class="card">
+  <div class="card-head"><h2>添加小组任务</h2><span class="muted small">负责人会在首页看到，并能自己更新进度</span></div>
+  {% include '_task_add.html' with kind='group' %}
+</section>
+{% endif %}
+
+<section class="card">
+  <div class="card-head"><h2>小组任务列表</h2>{% if can_edit and not edit_mode %}<span class="muted small">添加或修改任务请点“进入编辑”</span>{% endif %}</div>
+  <div class="task-list">{% for t in tasks %}{% include '_task_item.html' with editable=edit_mode %}{% empty %}<p class="empty">还没有小组任务。</p>{% endfor %}</div>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>小组批示</h2></div>
+  {% if is_super %}
+  <details class="drawer"><summary>写批示</summary>
+    <form method="post" action="{% url 'instruction_create' %}" class="instruction-form">{% csrf_token %}<input type="hidden" name="target" value="group"><input type="hidden" name="group" value="{{ group.pk }}"><input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <textarea name="text" rows="2" maxlength="2000" required placeholder="对整个小组的进度写批示，组内所有人都会在首页看到并反馈……"></textarea>
+      <button>发送批示</button>
+    </form>
+  </details>
+  {% endif %}
+  {% for i in instructions %}{% include '_instruction.html' %}{% empty %}<p class="empty">还没有批示。</p>{% endfor %}
+</section>
+{% endblock %}

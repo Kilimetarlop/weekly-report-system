@@ -1,0 +1,20 @@
+<div class="report" id="{{ report_id|default:'report-body' }}">
+  {% for section, fields in blocks %}
+  <div class="report-section">
+    <h3>{{ section }}</h3>
+    {% for label, item in fields %}
+    <div class="report-item">
+      <h4>{{ label }}</h4>
+      {% if item.state == 'NONE' %}<p class="muted">本周无／暂无</p>
+      {% elif item.items %}
+      <ol class="points">
+        {% for entry in item.items %}
+        <li>{% if entry.point %}{% if entry.detail.strip %}<details class="point-view"><summary>{{ entry.point }}</summary><div class="detail original">{{ entry.detail }}</div></details>{% else %}<span class="point-only">{{ entry.point }}</span>{% endif %}{% else %}<div class="original">{{ entry.detail }}</div>{% endif %}</li>
+        {% endfor %}
+      </ol>
+      {% else %}<p class="muted">未填写</p>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>

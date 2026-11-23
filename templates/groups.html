@@ -1,0 +1,60 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">仅最高权限</p>
+    <h1>分组管理</h1>
+    <p class="muted">本周起始日：{{ current }}。{% if not edit_mode %}建组、加人、任免组长、结束或调整组员请点“进入编辑”。{% endif %}</p>
+  </div>
+  {% include '_mode_toggle.html' %}
+</div>
+
+{% if edit_mode %}
+<section class="card">
+  <h2>新建小组</h2>
+  <p class="muted small">生效周期按所选日期所在的周（周六至周五）计算，可以选择过去的周用于补录。分组变动只影响“谁能看到”和各组的历史统计，不改动任何周报正文，也不影响已生成的导出文件；每次变动都写入审计记录。</p>
+  <form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="create"><input name="name" maxlength="100" required placeholder="小组名称" aria-label="小组名称"><button>新建</button></form>
+</section>
+{% endif %}
+
+{% for group in groups %}
+<section class="card{% if group.archived %} archived{% endif %}">
+  <div class="card-head">
+    <h2><a href="{% url 'group_page' group.pk %}">{{ group.name }}</a>{% if group.archived %}（已归档）{% endif %}</h2>
+    {% if edit_mode %}
+    <div class="inline-forms">
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="rename"><input type="hidden" name="group" value="{{ group.pk }}"><input name="name" value="{{ group.name }}" aria-label="新名称" required><button class="secondary small">改名</button></form>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="archive"><input type="hidden" name="group" value="{{ group.pk }}"><input type="hidden" name="archived" value="{% if group.archived %}0{% else %}1{% endif %}"><button class="secondary small">{% if group.archived %}取消归档{% else %}归档（需先结束本周及以后的全部组员关系）{% endif %}</button></form>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th>成员</th><th>角色</th><th>起始周</th><th>最后一周</th><th>本周状态</th>{% if edit_mode %}<th>调整</th>{% endif %}</tr></thead>
+    <tbody>
+    {% for record in group.records %}<tr>
+      <td>{{ record.user.name }}{% if record.user.tag %} <span class="badge tag">{{ record.user.tag }}</span>{% endif %}<small>{{ record.user.account }}</small></td>
+      <td>{{ record.get_role_display }}</td>
+      <td>{{ record.start }} 起</td>
+      <td>{% if record.last_week %}{{ record.last_week }} 止{% else %}至今{% endif %}</td>
+      <td>{{ record.status }}</td>
+      {% if edit_mode %}<td>
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="end"><input type="hidden" name="membership" value="{{ record.pk }}"><label>不再属于本组的首日所在周<input type="date" name="end" value="{{ record.end|date:'Y-m-d' }}"></label><button class="secondary small">{% if record.end %}修改结束{% else %}设为结束{% endif %}</button></form>
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="role"><input type="hidden" name="membership" value="{{ record.pk }}"><label>从该日期所在周起<input type="date" name="at" required></label><button class="secondary small">{% if record.role == 'leader' %}改为组员{% else %}任命为组长{% endif %}</button></form>
+        <form method="post" onsubmit="return confirm('仅用于更正录入错误。删除后这条记录对应的查看权和历史统计将消失（审计保留），确认删除？')">{% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="membership" value="{{ record.pk }}"><button class="danger small">删除记录</button></form>
+      </td>{% endif %}
+    </tr>{% empty %}<tr><td colspan="6">暂无成员</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+
+  {% if edit_mode and not group.archived %}
+  <form method="post" class="add-member">{% csrf_token %}<input type="hidden" name="action" value="add"><input type="hidden" name="group" value="{{ group.pk }}">
+    <label>成员<select name="user" required>{% for u in users %}<option value="{{ u.pk }}">{{ u.name }}（{{ u.account }}）</option>{% endfor %}</select></label>
+    <label>角色<select name="role">{% for value, label in roles %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></label>
+    <label>起始日期（所在周起生效）<input type="date" name="start" value="{{ current|date:'Y-m-d' }}" required></label>
+    <label>结束日期（可空；该日期所在周起不再属于）<input type="date" name="end"></label>
+    <button>加入小组</button>
+  </form>
+  {% endif %}
+</section>
+{% empty %}<section class="card"><p class="empty">还没有小组。{% if not edit_mode %}点“进入编辑”新建小组，{% endif %}或在成员管理里批量导入。未分组的成员照常应交，由最高权限查看和管理。</p></section>{% endfor %}
+{% endblock %}
